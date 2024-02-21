@@ -1,0 +1,41 @@
+name: CI/CD Pipeline// no credentials are provided
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub// for sample no credentials
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker image
+        run: docker build -t myapp .
+
+      - name: Push Docker image
+        run: |
+          docker tag myapp ${{ secrets.DOCKER_REGISTRY }}/myapp
+          docker push ${{ secrets.DOCKER_REGISTRY }}/myapp
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Deploy to AWS Elastic Beanstalk
+        run: |
+          eb deploy --region ${{ secrets.AWS_REGION }} --app myapp --env production
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
